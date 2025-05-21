@@ -13,10 +13,33 @@
             color: white;
             font-size: 24px;
         }
+        #scoreboard {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-family: sans-serif;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        #message {
+            position: fixed;
+            top: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-family: sans-serif;
+            background: rgba(0,0,0,0.7);
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
     <div id="crosshair">+</div>
+    <div id="scoreboard">Crystals: <span id="score">0</span></div>
+    <div id="message"></div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
         let camera, scene, renderer, cube;
@@ -25,6 +48,9 @@
         let jumpForce = 0.3;
         let velocityY = 0;
         let onGround = true;
+        let crystals = 0;
+        const totalCrystals = 5;
+        const collectibles = [];
 
         // Player controls state
         const keys = {
@@ -61,6 +87,16 @@
             addBlock(2, 0, 2, 0xff0000);
             addBlock(-2, 0, -2, 0x0000ff);
 
+            // Spawn collectibles
+            for(let i = 0; i < totalCrystals; i++) {
+                const x = (Math.random() - 0.5) * 20;
+                const z = (Math.random() - 0.5) * 20;
+                addCollectible(x, 0.5, z);
+            }
+
+            document.getElementById('message').innerText = 'Collect all the energy crystals! Use WASD to move and SPACE to jump.';
+            document.getElementById('score').innerText = crystals;
+
             camera.position.set(0, 2, 3);
             camera.lookAt(cube.position);
 
@@ -76,6 +112,15 @@
             const block = new THREE.Mesh(geometry, material);
             block.position.set(x, y, z);
             scene.add(block);
+        }
+
+        function addCollectible(x, y, z) {
+            const geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+            const material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+            const crystal = new THREE.Mesh(geometry, material);
+            crystal.position.set(x, y, z);
+            scene.add(crystal);
+            collectibles.push(crystal);
         }
 
         function handleKey(event, isDown) {
@@ -116,6 +161,20 @@
             camera.position.x = cube.position.x;
             camera.position.z = cube.position.z + 3;
             camera.lookAt(cube.position);
+
+            // Collectible collision
+            for(let i = collectibles.length - 1; i >= 0; i--) {
+                const c = collectibles[i];
+                if(cube.position.distanceTo(c.position) < 1) {
+                    scene.remove(c);
+                    collectibles.splice(i, 1);
+                    crystals++;
+                    document.getElementById('score').innerText = crystals;
+                    if(crystals === totalCrystals) {
+                        document.getElementById('message').innerText = 'All crystals collected! You win!';
+                    }
+                }
+            }
         }
 
         function onWindowResize() {
