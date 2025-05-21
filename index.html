@@ -73,7 +73,7 @@
             down: false
         };
 
-        function createAvatarTexture() {
+        function createRobotBaseTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 256;
             canvas.height = 512;
@@ -129,21 +129,6 @@
             ctx.stroke();
             ctx.restore();
 
-            // Eyes
-            ctx.fillStyle = '#fff';
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(canvas.width/2 - 20, canvas.height/4, 8, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(canvas.width/2 + 20, canvas.height/4, 8, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-            ctx.fillStyle = '#000';
-            ctx.fillRect(canvas.width/2 - 20, canvas.height/4 + 20, 40, 4);
-
             // Cap
             ctx.fillStyle = '#008080';
             ctx.strokeStyle = '#000';
@@ -168,9 +153,28 @@
             ctx.closePath();
             ctx.fill();
 
+            return { canvas, ctx };
+        }
+
+        function createRobotFrontTexture() {
+            const data = createRobotBaseTexture();
+            const canvas = data.canvas;
+            const ctx = data.ctx;
+            ctx.fillStyle = '#222';
+            ctx.fillRect(canvas.width/2 - 32, canvas.height/4 - 12, 64, 24);
+            ctx.strokeStyle = '#000';
+            ctx.strokeRect(canvas.width/2 - 32, canvas.height/4 - 12, 64, 24);
+            ctx.fillStyle = '#0ff';
+            ctx.fillRect(canvas.width/2 - 28, canvas.height/4 - 8, 56, 16);
+            ctx.fillStyle = '#222';
+            ctx.fillRect(canvas.width/2 - 20, canvas.height/4 + 20, 40, 8);
             return new THREE.CanvasTexture(canvas);
         }
 
+        function createRobotSideTexture() {
+            const data = createRobotBaseTexture();
+            return new THREE.CanvasTexture(data.canvas);
+        }
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
@@ -181,15 +185,29 @@
 
             // Player avatar
             const geometry = new THREE.BoxGeometry(1, 2, 1);
-            const avatarTexture = createAvatarTexture();
-            avatarTexture.minFilter = THREE.LinearFilter;
-            const material = new THREE.MeshBasicMaterial({ map: avatarTexture, transparent: true });
-            cube = new THREE.Mesh(geometry, material);
-            // Outline for a cel shaded look
+            const frontTexture = createRobotFrontTexture();
+            const sideTexture = createRobotSideTexture();
+            frontTexture.minFilter = THREE.LinearFilter;
+            sideTexture.minFilter = THREE.LinearFilter;
+            const materials = [
+                new THREE.MeshBasicMaterial({ map: sideTexture, transparent: true }),
+                new THREE.MeshBasicMaterial({ map: sideTexture, transparent: true }),
+                new THREE.MeshBasicMaterial({ map: sideTexture, transparent: true }),
+                new THREE.MeshBasicMaterial({ map: sideTexture, transparent: true }),
+                new THREE.MeshBasicMaterial({ map: sideTexture, transparent: true }),
+                new THREE.MeshBasicMaterial({ map: frontTexture, transparent: true })
+            ];
+            cube = new THREE.Mesh(geometry, materials);
             const edges = new THREE.EdgesGeometry(geometry);
             const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 }));
             cube.add(line);
             cube.position.y = 1;
+            const arrowGeo = new THREE.ConeGeometry(0.15, 0.4, 8);
+            arrowGeo.rotateX(Math.PI / 2);
+            const arrow = new THREE.Mesh(arrowGeo, new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+            arrow.rotation.y = Math.PI;
+            arrow.position.set(0, 1.6, -0.6);
+            cube.add(arrow);
             scene.add(cube);
 
             // Ground
