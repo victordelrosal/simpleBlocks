@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Block Game</title>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        canvas { width: 100%; height: 100% }
+        #crosshair {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+    <div id="crosshair">+</div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        let camera, scene, renderer, cube;
+        let moveSpeed = 0.1;
+        let gravity = 0.02;
+        let jumpForce = 0.3;
+        let velocityY = 0;
+        let onGround = true;
+
+        // Player controls state
+        const keys = {
+            w: false,
+            a: false,
+            s: false,
+            d: false,
+            space: false
+        };
+
+        function init() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.body.appendChild(renderer.domElement);
+
+            // Player cube
+            const geometry = new THREE.BoxGeometry(1, 2, 1);
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            cube = new THREE.Mesh(geometry, material);
+            cube.position.y = 1;
+            scene.add(cube);
+
+            // Ground
+            const groundGeometry = new THREE.PlaneGeometry(50, 50);
+            const groundMaterial = new THREE.MeshBasicMaterial({ color: 0x964B00, side: THREE.DoubleSide });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = Math.PI / 2;
+            scene.add(ground);
+
+            // Add some blocks
+            addBlock(2, 0, 2, 0xff0000);
+            addBlock(-2, 0, -2, 0x0000ff);
+
+            camera.position.set(0, 2, 3);
+            camera.lookAt(cube.position);
+
+            // Event listeners
+            document.addEventListener('keydown', (e) => handleKey(e, true));
+            document.addEventListener('keyup', (e) => handleKey(e, false));
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function addBlock(x, y, z, color) {
+            const geometry = new THREE.BoxGeometry(1, 1, 1);
+            const material = new THREE.MeshBasicMaterial({ color: color });
+            const block = new THREE.Mesh(geometry, material);
+            block.position.set(x, y, z);
+            scene.add(block);
+        }
+
+        function handleKey(event, isDown) {
+            switch(event.key.toLowerCase()) {
+                case 'w': keys.w = isDown; break;
+                case 'a': keys.a = isDown; break;
+                case 's': keys.s = isDown; break;
+                case 'd': keys.d = isDown; break;
+                case ' ': keys.space = isDown; break;
+            }
+        }
+
+        function updateMovement() {
+            // Horizontal movement
+            if (keys.w) cube.position.z -= moveSpeed;
+            if (keys.s) cube.position.z += moveSpeed;
+            if (keys.a) cube.position.x -= moveSpeed;
+            if (keys.d) cube.position.x += moveSpeed;
+
+            // Jumping
+            if (keys.space && onGround) {
+                velocityY = jumpForce;
+                onGround = false;
+            }
+
+            // Apply gravity
+            velocityY -= gravity;
+            cube.position.y += velocityY;
+
+            // Ground collision
+            if (cube.position.y <= 1) {
+                cube.position.y = 1;
+                velocityY = 0;
+                onGround = true;
+            }
+
+            // Update camera position to follow player
+            camera.position.x = cube.position.x;
+            camera.position.z = cube.position.z + 3;
+            camera.lookAt(cube.position);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            updateMovement();
+            renderer.render(scene, camera);
+        }
+
+        init();
+        animate();
+    </script>
+</body>
+</html>
