@@ -38,7 +38,7 @@
 </head>
 <body>
     <div id="crosshair">+</div>
-    <div id="scoreboard">Crystals: <span id="score">0</span></div>
+    <div id="scoreboard">Level: <span id="level">1</span> - Collected: <span id="score">0</span>/<span id="total">0</span></div>
     <div id="message"></div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
@@ -49,8 +49,16 @@
         let velocityY = 0;
         let onGround = true;
         let crystals = 0;
-        const totalCrystals = 5;
+        let level = 1;
+        const maxLevels = 5;
+        const crystalsPerLevel = 6;
+        let totalCrystals = crystalsPerLevel;
         const collectibles = [];
+
+        let cameraAngle = 0;
+        let cameraElev = 0;
+        const cameraDistance = 3;
+        const rotateSpeed = 0.03;
 
         // Player controls state
         const keys = {
@@ -58,7 +66,11 @@
             a: false,
             s: false,
             d: false,
-            space: false
+            space: false,
+            left: false,
+            right: false,
+            up: false,
+            down: false
         };
 
         function init() {
@@ -87,15 +99,7 @@
             addBlock(2, 0, 2, 0xff0000);
             addBlock(-2, 0, -2, 0x0000ff);
 
-            // Spawn collectibles
-            for(let i = 0; i < totalCrystals; i++) {
-                const x = (Math.random() - 0.5) * 20;
-                const z = (Math.random() - 0.5) * 20;
-                addCollectible(x, 0.5, z);
-            }
-
-            document.getElementById('message').innerText = 'Collect all the energy crystals! Use WASD to move and SPACE to jump.';
-            document.getElementById('score').innerText = crystals;
+            startLevel();
 
             camera.position.set(0, 2, 3);
             camera.lookAt(cube.position);
@@ -123,13 +127,36 @@
             collectibles.push(crystal);
         }
 
+        function startLevel() {
+            for(const c of collectibles) {
+                scene.remove(c);
+            }
+            collectibles.length = 0;
+            crystals = 0;
+            totalCrystals = crystalsPerLevel;
+            document.getElementById('level').innerText = level;
+            document.getElementById('score').innerText = crystals;
+            document.getElementById('total').innerText = totalCrystals;
+            document.getElementById('message').innerText = 'Level ' + level + ': Collect all the energy crystals!';
+            for(let i = 0; i < totalCrystals; i++) {
+                const x = (Math.random() - 0.5) * 20;
+                const z = (Math.random() - 0.5) * 20;
+                addCollectible(x, 0.5, z);
+            }
+        }
+
         function handleKey(event, isDown) {
-            switch(event.key.toLowerCase()) {
+            const key = event.key.toLowerCase();
+            switch(key) {
                 case 'w': keys.w = isDown; break;
                 case 'a': keys.a = isDown; break;
                 case 's': keys.s = isDown; break;
                 case 'd': keys.d = isDown; break;
                 case ' ': keys.space = isDown; break;
+                case 'arrowleft': keys.left = isDown; break;
+                case 'arrowright': keys.right = isDown; break;
+                case 'arrowup': keys.up = isDown; break;
+                case 'arrowdown': keys.down = isDown; break;
             }
         }
 
@@ -157,9 +184,15 @@
                 onGround = true;
             }
 
-            // Update camera position to follow player
-            camera.position.x = cube.position.x;
-            camera.position.z = cube.position.z + 3;
+            // Camera rotation with arrow keys
+            if (keys.left) cameraAngle -= rotateSpeed;
+            if (keys.right) cameraAngle += rotateSpeed;
+            if (keys.up) cameraElev = Math.min(cameraElev + rotateSpeed, Math.PI / 2 - 0.1);
+            if (keys.down) cameraElev = Math.max(cameraElev - rotateSpeed, -Math.PI / 2 + 0.1);
+
+            camera.position.x = cube.position.x + Math.sin(cameraAngle) * Math.cos(cameraElev) * cameraDistance;
+            camera.position.z = cube.position.z + Math.cos(cameraAngle) * Math.cos(cameraElev) * cameraDistance;
+            camera.position.y = cube.position.y + Math.sin(cameraElev) * cameraDistance + 1;
             camera.lookAt(cube.position);
 
             // Collectible collision
@@ -171,7 +204,12 @@
                     crystals++;
                     document.getElementById('score').innerText = crystals;
                     if(crystals === totalCrystals) {
-                        document.getElementById('message').innerText = 'All crystals collected! You win!';
+                        if(level < maxLevels) {
+                            level++;
+                            startLevel();
+                        } else {
+                            document.getElementById('message').innerText = 'All crystals collected! You win!';
+                        }
                     }
                 }
             }
