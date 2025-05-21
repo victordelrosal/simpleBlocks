@@ -73,6 +73,104 @@
             down: false
         };
 
+        function createAvatarTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // Background gradient
+            const bg = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            bg.addColorStop(0, '#39ff14');
+            bg.addColorStop(0.5, '#8a00ff');
+            bg.addColorStop(1, '#0077ff');
+            ctx.fillStyle = bg;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Create rainbow scale pattern
+            const pCanvas = document.createElement('canvas');
+            pCanvas.width = 32;
+            pCanvas.height = 32;
+            const pCtx = pCanvas.getContext('2d');
+            for(let y = 0; y < pCanvas.height; y += 8) {
+                for(let x = 0; x < pCanvas.width; x += 8) {
+                    const hue = (x + y) / (pCanvas.width + pCanvas.height) * 360;
+                    pCtx.fillStyle = `hsl(${hue},100%,50%)`;
+                    pCtx.beginPath();
+                    pCtx.arc(x + 4, y + 4, 4, Math.PI, 0);
+                    pCtx.closePath();
+                    pCtx.fill();
+                }
+            }
+            const pattern = ctx.createPattern(pCanvas, 'repeat');
+            ctx.fillStyle = pattern;
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 4;
+
+            // Head
+            ctx.save();
+            ctx.translate(canvas.width/2, canvas.height/4);
+            ctx.beginPath();
+            ctx.rect(-40, -40, 80, 80);
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+
+            // Body trapezoid
+            ctx.save();
+            ctx.translate(canvas.width/2, canvas.height/2 + 40);
+            ctx.beginPath();
+            ctx.moveTo(-50, -60);
+            ctx.lineTo(50, -60);
+            ctx.lineTo(30, 60);
+            ctx.lineTo(-30, 60);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.restore();
+
+            // Eyes
+            ctx.fillStyle = '#fff';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(canvas.width/2 - 20, canvas.height/4, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(canvas.width/2 + 20, canvas.height/4, 8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#000';
+            ctx.fillRect(canvas.width/2 - 20, canvas.height/4 + 20, 40, 4);
+
+            // Cap
+            ctx.fillStyle = '#008080';
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(canvas.width/2, canvas.height/4 - 40, 50, Math.PI, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#888';
+            ctx.fillRect(canvas.width/2 - 50, canvas.height/4 - 40, 100, 10);
+
+            // Golden emblems
+            ctx.fillStyle = 'gold';
+            ctx.beginPath();
+            ctx.arc(canvas.width/2 - 20, canvas.height/2, 10, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.moveTo(canvas.width/2 + 10, canvas.height/2 - 10);
+            ctx.lineTo(canvas.width/2 + 30, canvas.height/2 - 10);
+            ctx.lineTo(canvas.width/2 + 20, canvas.height/2 + 20);
+            ctx.closePath();
+            ctx.fill();
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
         function init() {
             scene = new THREE.Scene();
             camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
@@ -81,10 +179,16 @@
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.body.appendChild(renderer.domElement);
 
-            // Player cube
+            // Player avatar
             const geometry = new THREE.BoxGeometry(1, 2, 1);
-            const material = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+            const avatarTexture = createAvatarTexture();
+            avatarTexture.minFilter = THREE.LinearFilter;
+            const material = new THREE.MeshBasicMaterial({ map: avatarTexture, transparent: true });
             cube = new THREE.Mesh(geometry, material);
+            // Outline for a cel shaded look
+            const edges = new THREE.EdgesGeometry(geometry);
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x000000 }));
+            cube.add(line);
             cube.position.y = 1;
             scene.add(cube);
 
